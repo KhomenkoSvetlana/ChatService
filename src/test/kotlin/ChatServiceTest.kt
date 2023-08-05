@@ -53,6 +53,7 @@ class ChatServiceTest {
     fun getUnreadChatsCount() {
         val message = ChatService.addMessege(elem = Message(1,1, Date(),1, 2, text = "text"))
         val message1 = ChatService.addMessege(elem = Message(1,2, Date(),2, 1, text = "text"))
+        val message2 = ChatService.addMessege(elem = Message(3,14, Date(),5, 6, read = true, text = "text"))
         val result = ChatService.getUnreadChatsCount()
         assertEquals(result, 1)
 

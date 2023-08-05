@@ -8,7 +8,6 @@ data class Chat(
     override val id: Int, //Идентификатор беседы
     val adminId: Int, //Идентификатор пользователя, который является создателем беседы
     val userId: Int, //Идентификатор участника беседы
-    val message: MutableList<Message> = mutableListOf()
 ) : Discussion
 
 data class Message(
@@ -56,12 +55,12 @@ object ChatService {
         for (i in messageList.indices) {
             if (messageList[i].id == chatId) {
                 messageList.remove(messageList[i])
-                for (j in chatList.indices) {
-                    if (chatList[j].id == chatId) {
-                        chatList.remove(chatList[j])
-                        return true
-                    }
-                }
+            }
+        }
+        for (j in chatList.indices) {
+            if (chatList[j].id == chatId) {
+                chatList.remove(chatList[j])
+                return true
             }
         }
         return false
@@ -80,11 +79,15 @@ object ChatService {
 
     fun getUnreadChatsCount(): Int { //сколько чатов не прочитанно
         var count = 0
-        for (i in chatList.indices){
-            if (messageList.last().read == false) {
-                count++
-                messageList[i] = messageList[i].copy(read = true)
+        for (i in chatList.indices) {
+            var countMes = 0
+            for (j in messageList.indices){
+                if (!messageList[j].read) {
+                    messageList[j] = messageList[j].copy(read = true)
+                    countMes++
+                }
             }
+            if (countMes > 0) count++
         }
         return count
     }
@@ -100,26 +103,20 @@ object ChatService {
         for (i in chatList.indices) {
             if (chatList[i].id == messageList.last().id)
                 chatLastMessage.add(messageList.last())
-            else println("Сообщений в чате ${chatList[i]} нет")
+            else(chatLastMessage.add(element = Message(idMessage = chatList[i].id, date = Date(), fromId = 0, id = 0, userId = 0, text = "Сообщений нет")))
         }
         return chatLastMessage
     }
 
-    fun getListMessage (chatId: Int, idLast: Int, count: Int): MutableList<Message> { //Список сообщений из чата
-        var getListMessage = mutableListOf<Message>()
-        for (i in chatList.indices){
-            if (chatList[i].id == chatId){
-                for (j in messageList.indices){
-                    if(messageList[j].idMessage >= idLast){
-                        getListMessage.add(messageList[i])
-                        messageList[j] = messageList[j].copy(read = true)
-                    }
-                }
-            }
-        }
-        return getListMessage
+    fun getListMessage(chatId: Int, idLast: Int, count: Int): MutableList<Message> { //Список сообщений из чата
+        chatList.find { chat -> chat.id == chatId } ?: throw Exception("Чат не найден")
+        val result = messageList.filter { message ->  message.id == chatId && message.idMessage >= idLast } //Отфильтровать список сообщений, оставив в нём только те, которые принадлежат нужному чату и не превышают заданный id сообщения
+            .take(count) //Взять только нужное количество (если count будет больше размера получившегося списка, то take вернёт сколько есть)
+        messageList.removeAll(result) //Удалить из списка все найденные элементы
+        messageList.addAll(result.map { message -> message.copy(read = true) }) //Вернуть в список все найденные элементы с флагом прочитано
+        messageList.sortedBy { message -> message.idMessage } //отсортировать по id
+        return result.toMutableList()
     }
-
 }
 
 fun main(args: Array<String>) {
