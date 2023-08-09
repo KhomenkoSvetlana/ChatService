@@ -1,4 +1,4 @@
-import java.util.Date
+import java.util.*
 
 interface Discussion {
     val id: Int
@@ -36,19 +36,10 @@ object ChatService {
     }
 
     fun addMessage(elem: Message): Message { //добавить сообщение и чат если его еще нет
-        var sum = 0
-        for (i in chatList.indices) if (chatList[i].id == elem.id) sum++
-
-        when (sum == 0) {
-            true -> {
-                addChat(elem = Chat(id = elem.id, adminId = elem.fromId, userId = elem.userId))
-                messageList.add(elem)
-            }
-
-            false -> messageList.add(elem)
-        }
-
+        chatList.find { it.id == elem.id } ?: addChat(elem = Chat(id = elem.id, adminId = elem.fromId, userId = elem.userId))
+        messageList.add(elem)
         return messageList.last()
+
     }
 
     fun deleteChat(chatId: Int): Boolean { //удалить чат и всю переписку
@@ -99,13 +90,14 @@ object ChatService {
     }
 
     fun getListMessage(chatId: Int, idLast: Int, count: Int): MutableList<Message> { //Список сообщений из чата
-        chatList.find { chat -> chat.id == chatId } ?: throw Exception("Чат не найден")
+        chatList.find { chat -> chat.id == chatId } ?: throw Exception("Чат не найден") // нашли чат с нужным id
         val result =
-            messageList.filter { message -> message.id == chatId && message.idMessage >= idLast } //Отфильтровать список сообщений, оставив в нём только те, которые принадлежат нужному чату и не превышают заданный id сообщения
-                .take(count) //Взять только нужное количество (если count будет больше размера получившегося списка, то take вернёт сколько есть)
-        messageList.removeAll(result) //Удалить из списка все найденные элементы
-        messageList.addAll(result.map { message -> message.copy(read = true) }) //Вернуть в список все найденные элементы с флагом прочитано
-        messageList.sortedBy { message -> message.idMessage } //отсортировать по id
+            messageList.asSequence().filter { it.id == chatId }
+                .take(count).toList()
+        messageList.removeAll(result) // удалем из  messageList все элементы из messageSequence
+        messageList.addAll(result.map { it.copy(read = true)})
+        messageList = messageList.sortedBy { it.idMessage }.toMutableList()
+        messageList.sortedBy { message -> message.idMessage }
         return result.toMutableList()
     }
 }
@@ -116,5 +108,6 @@ fun main(args: Array<String>) {
     ChatService.addMessage(elem = Message(1, 3, Date(), 2, 1, text = "3"))
     println(ChatService.getUnreadChatsCount())
     println(ChatService.chatLastMessage())
+    println("Get list Message ${ChatService.getListMessage(1, 3, 1)}")
 
 }
